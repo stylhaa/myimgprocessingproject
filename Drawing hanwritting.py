@@ -99,7 +99,3 @@ cv2.imwrite("kmeans_comparison.png", kmeans_img)
 print("Processing completed successfully.")
 print("Multi-level Otsu thresholds:", thresholds)
 
-
-print("Processing completed successfully.")
-print("Multi-level Otsu thresholds:", thresholds)
-
