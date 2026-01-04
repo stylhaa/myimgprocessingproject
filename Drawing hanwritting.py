@@ -1,26 +1,18 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 from skimage.filters import threshold_multiotsu
 
-# ======================================================
-# 1. LOAD IMAGE (GRAYSCALE)
-# ======================================================
 image_path = r"C:\Users\user\.spyder-py3\drawing.jpg"
 gray = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
 if gray is None:
-    print("Error: Image not found.")
+    print("Error: Image not found. Please check the file path.")
     exit()
 
-# ======================================================
-# 2. GAUSSIAN BLUR (NOISE REDUCTION)
-# ======================================================
 blur = cv2.GaussianBlur(gray, (5, 5), 0)
 
-# ======================================================
-# 3. SINGLE-LEVEL OTSU (MAIN METHOD)
-# ======================================================
 _, otsu = cv2.threshold(
     blur,
     0,
@@ -28,26 +20,14 @@ _, otsu = cv2.threshold(
     cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
 )
 
-# ======================================================
-# 4. MORPHOLOGICAL CLEANING
-# ======================================================
 kernel = np.ones((3, 3), np.uint8)
 cleaned = cv2.morphologyEx(otsu, cv2.MORPH_OPEN, kernel)
 
-# ======================================================
-# 5. MULTI-LEVEL OTSU (FOR SHADING ANALYSIS)
-# ======================================================
-# Multi-Otsu separates intensity into multiple regions
-# This is used to observe tonal variation, NOT pressure
 thresholds = threshold_multiotsu(blur, classes=3)
 regions = np.digitize(blur, bins=thresholds)
 
-# Normalize regions for display
 multi_otsu = (regions * (255 / regions.max())).astype(np.uint8)
 
-# ======================================================
-# 6. K-MEANS (COMPARISON ONLY)
-# ======================================================
 pixels = blur.reshape((-1, 1)).astype(np.float32)
 K = 3
 
@@ -62,47 +42,54 @@ _, labels, centers = cv2.kmeans(
 
 kmeans_img = centers[labels.flatten()].reshape(gray.shape).astype(np.uint8)
 
-# ======================================================
-# 7. DISPLAY RESULTS IN LAYOUT
-# ======================================================
-plt.figure(figsize=(24, 6))
+fig, axes = plt.subplots(1, 6, figsize=(24, 6))
 
-plt.subplot(1, 6, 1)
-plt.title("Original Grayscale")
-plt.imshow(gray, cmap="gray")
-plt.axis("off")
+axes[0].set_title("Original Grayscale")
+axes[0].imshow(gray, cmap="gray")
+axes[0].axis("off")
 
-plt.subplot(1, 6, 2)
-plt.title("Gaussian Blur")
-plt.imshow(blur, cmap="gray")
-plt.axis("off")
+axes[1].set_title("Gaussian Blur")
+axes[1].imshow(blur, cmap="gray")
+axes[1].axis("off")
 
-plt.subplot(1, 6, 3)
-plt.title("Single Otsu\n(One Stroke Class)")
-plt.imshow(otsu, cmap="gray")
-plt.axis("off")
+axes[2].set_title("Single Otsu\n(One Stroke Class)")
+axes[2].imshow(otsu, cmap="gray")
+axes[2].axis("off")
 
-plt.subplot(1, 6, 4)
-plt.title("Morphology Cleaned")
-plt.imshow(cleaned, cmap="gray")
-plt.axis("off")
+stroke_patch = mpatches.Patch(color='black', label='Foreground (Stroke)')
+background_patch = mpatches.Patch(color='white', label='Background (Paper)')
+axes[2].legend(
+    handles=[stroke_patch, background_patch],
+    loc="lower right",
+    fontsize=9,
+    frameon=True
+)
 
-plt.subplot(1, 6, 5)
-plt.title("Multi-level Otsu\n(Tonal Regions)")
-plt.imshow(multi_otsu, cmap="gray")
-plt.axis("off")
+axes[3].set_title("Morphology Cleaned")
+axes[3].imshow(cleaned, cmap="gray")
+axes[3].axis("off")
 
-plt.subplot(1, 6, 6)
-plt.title("K-Means (K=3)\nOver-segmentation")
-plt.imshow(kmeans_img, cmap="gray")
-plt.axis("off")
+axes[4].set_title("Multi-level Otsu\n(Tonal Regions)")
+axes[4].imshow(multi_otsu, cmap="gray")
+axes[4].axis("off")
+
+dark_patch = mpatches.Patch(color='black', label='Dark Tone')
+mid_patch = mpatches.Patch(color='gray', label='Medium Tone')
+light_patch = mpatches.Patch(color='white', label='Light Tone')
+axes[4].legend(
+    handles=[dark_patch, mid_patch, light_patch],
+    loc="lower right",
+    fontsize=9,
+    frameon=True
+)
+
+axes[5].set_title("K-Means (K=3)\nOver-segmentation")
+axes[5].imshow(kmeans_img, cmap="gray")
+axes[5].axis("off")
 
 plt.tight_layout()
 plt.show()
 
-# ======================================================
-# 8. SAVE OUTPUTS
-# ======================================================
 cv2.imwrite("grayscale.png", gray)
 cv2.imwrite("single_otsu.png", otsu)
 cv2.imwrite("cleaned_ink.png", cleaned)
@@ -111,3 +98,8 @@ cv2.imwrite("kmeans_comparison.png", kmeans_img)
 
 print("Processing completed successfully.")
 print("Multi-level Otsu thresholds:", thresholds)
+
+
+print("Processing completed successfully.")
+print("Multi-level Otsu thresholds:", thresholds)
+
